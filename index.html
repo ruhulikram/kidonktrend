@@ -143,7 +143,9 @@ main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 .alert .btn { flex: 1; }
 .btn.danger { background: var(--destructive); border-color: var(--destructive); color: #fff; }
 .alert.cam { width: min(520px, calc(100% - 24px)); padding: 12px; }
-.cam video { transform: scaleX(-1); display: block; width: 100%; max-height: 60vh; border-radius: 8px; background: #000; margin-bottom: 12px; }
+.cam video { transform: scaleX(-1); display: block; width: 100%; max-height: 60vh; border-radius: 8px; background: #000; margin-bottom: 8px; }
+.cam video.flash { opacity: .3; }
+.cam .shots { font-size: 12px; margin: 0 0 10px; font-variant-numeric: tabular-nums; }
 
 @media (max-width: 767px) {
   body { display: block; }
@@ -232,9 +234,11 @@ main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
   <div class="overlay" id="camOverlay">
     <div class="alert cam" role="dialog" aria-modal="true" aria-label="Camera">
       <video id="video" autoplay playsinline muted></video>
+      <p class="shots" id="shots" aria-live="polite"></p>
       <div class="actions">
         <button class="btn" id="camCancel">Cancel</button>
         <button class="btn primary" id="snap">Take Photo</button>
+        <button class="btn" id="camDone" disabled>Done</button>
       </div>
     </div>
   </div>
@@ -379,13 +383,17 @@ async function loadFiles(files) {
 }
 
 // Camera: front camera only, live preview via getUserMedia; falls back to the native capture input if unavailable or denied.
+// Photos are taken one by one (up to 42); "Done" or the 42nd shot fills the grid.
 let stream = null;
+let shots = [];
 async function openCamera() {
   try {
     stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
   } catch {
     return $('fileCam').click();
   }
+  shots = [];
+  showShots();
   $('video').srcObject = stream;
   $('camOverlay').classList.add('open');
   $('snap').focus();
@@ -393,19 +401,39 @@ async function openCamera() {
 function closeCamera() {
   if (stream) stream.getTracks().forEach(t => t.stop());
   stream = null;
+  shots = [];
   $('video').srcObject = null;
   $('camOverlay').classList.remove('open');
 }
+function showShots() {
+  $('shots').textContent = `${shots.length} / ${N} photos`;
+  $('camDone').disabled = !shots.length;
+}
 function snap() {
   const v = $('video');
-  if (!v.videoWidth) return;   // camera not ready yet
+  if (!v.videoWidth || shots.length >= N) return;   // camera not ready, or already full
+  // Draw straight at storage size (max 500 px), mirrored to match the selfie preview.
+  const k = Math.min(1, 500 / Math.max(v.videoWidth, v.videoHeight));
   const c = document.createElement('canvas');
-  c.width = v.videoWidth; c.height = v.videoHeight;
+  c.width = Math.round(v.videoWidth * k); c.height = Math.round(v.videoHeight * k);
   const ctx = c.getContext('2d');
-  ctx.translate(c.width, 0); ctx.scale(-1, 1);   // mirror, matching the selfie preview
-  ctx.drawImage(v, 0, 0);
+  ctx.translate(c.width, 0); ctx.scale(-1, 1);
+  ctx.drawImage(v, 0, 0, c.width, c.height);
+  v.classList.add('flash');
+  setTimeout(() => v.classList.remove('flash'), 90);
+  c.toBlob(b => {
+    if (!b || !stream || shots.length >= N) return;
+    shots.push(b);
+    showShots();
+    if (shots.length === N) camDone();
+  }, 'image/jpeg', 0.82);
+}
+function camDone() {
+  const taken = shots;
+  if (!taken.length) return;
   closeCamera();
-  c.toBlob(b => b && loadFiles([b]), 'image/jpeg', 0.92);
+  usePhotos(taken);
+  store.save(taken);
 }
 
 // Alert
@@ -478,6 +506,7 @@ $('lib').onclick = () => $('fileLib').click();
 $('cam').onclick = openCamera;
 $('snap').onclick = snap;
 $('camCancel').onclick = closeCamera;
+$('camDone').onclick = camDone;
 $('camOverlay').onclick = e => { if (e.target === $('camOverlay')) closeCamera(); };
 $('fileLib').onchange = e => onFiles(e.target);
 $('fileCam').onchange = e => onFiles(e.target);
