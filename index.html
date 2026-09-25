@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kidonk Kidonk</title>
+<meta name="description" content="Recreate the Kidonk Kidonk trend: 42 photos deleted one by one. Your photos stay on this device.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23fff'/%3E%3Ccircle cx='16' cy='16' r='10' fill='none' stroke='%23FF3B30' stroke-width='5' stroke-dasharray='10 5'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap">
+<script>try { const t = localStorage.getItem('theme'); if (t) document.documentElement.dataset.theme = t; } catch {}</script>
+<style>
+:root {
+  --window: #FFFFFF; --sidebar: #F0F0F2; --titlebar: #F6F6F6; --separator: #D9D9DC;
+  --label: #1D1D1F; --secondary: #6E6E73; --accent: #007AFF; --destructive: #FF3B30;
+  --tint: rgba(0,122,255,.14); --hover: rgba(0,0,0,.06); --alert: rgba(246,246,246,.86);
+  --button: #FFFFFF; --desktop: linear-gradient(135deg, #c9d6ff, #e2e2f0 50%, #f6d5e3);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --window: #1E1E1E; --sidebar: #2A2A2C; --titlebar: #2C2C2E; --separator: #3A3A3C;
+    --label: #F5F5F7; --secondary: #98989D; --accent: #0A84FF; --destructive: #FF453A;
+    --tint: rgba(10,132,255,.25); --hover: rgba(255,255,255,.08); --alert: rgba(44,44,46,.86);
+    --button: #3A3A3C; --desktop: linear-gradient(135deg, #1b2440, #121216 50%, #33202b);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --window: #1E1E1E; --sidebar: #2A2A2C; --titlebar: #2C2C2E; --separator: #3A3A3C;
+  --label: #F5F5F7; --secondary: #98989D; --accent: #0A84FF; --destructive: #FF453A;
+  --tint: rgba(10,132,255,.25); --hover: rgba(255,255,255,.08); --alert: rgba(44,44,46,.86);
+  --button: #3A3A3C; --desktop: linear-gradient(135deg, #1b2440, #121216 50%, #33202b);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; height: 100%; }
+body {
+  background: var(--desktop); color: var(--label);
+  font: 13px/1.35 -apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, "Helvetica Neue", "Segoe UI", sans-serif;
+  display: grid; place-items: center; -webkit-font-smoothing: antialiased;
+}
+button { font: inherit; color: inherit; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+.window {
+  position: relative; width: min(960px, calc(100vw - 48px)); height: min(640px, calc(100vh - 48px));
+  display: flex; flex-direction: column; overflow: hidden;
+  background: var(--window); border: 1px solid var(--separator); border-radius: 10px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.25);
+}
+.titlebar {
+  position: relative; flex: 0 0 52px; display: flex; align-items: center; justify-content: space-between;
+  padding: 0 12px 0 20px; background: var(--titlebar); border-bottom: 1px solid var(--separator);
+}
+.lights { display: flex; gap: 8px; }
+.lights i { width: 12px; height: 12px; border-radius: 50%; }
+.lights i:nth-child(1) { background: #FF5F57; } .lights i:nth-child(2) { background: #FEBC2E; } .lights i:nth-child(3) { background: #28C840; }
+.title { position: absolute; left: 50%; transform: translateX(-50%); font-weight: 600; font-variant-numeric: tabular-nums; }
+.tools { display: flex; gap: 4px; }
+.tool {
+  width: 28px; height: 28px; border: 0; border-radius: 6px; background: none; color: var(--secondary);
+  display: grid; place-items: center; padding: 0;
+}
+.tool:not(:disabled):hover { background: var(--hover); color: var(--label); }
+.trash:not(:disabled):hover { color: var(--destructive); }
+#theme svg.swap { animation: swap 450ms cubic-bezier(.34, 1.56, .64, 1); }
+@keyframes swap { from { transform: rotate(-120deg) scale(.3); opacity: 0; } to { transform: none; opacity: 1; } }
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: 350ms; animation-timing-function: ease; }
+.theming, .theming * { transition: background-color 350ms, color 350ms, border-color 350ms !important; }
+.tool:disabled { opacity: .35; cursor: default; }
+
+.body { flex: 1; display: flex; min-height: 0; }
+.sidebar { flex: 0 0 220px; background: var(--sidebar); border-right: 1px solid var(--separator); padding: 12px 10px; }
+.sidebar h2 { font-size: 11px; font-weight: 600; color: var(--secondary); margin: 10px 8px 4px; }
+.sidebar div { height: 28px; line-height: 28px; padding: 0 10px; border-radius: 6px; }
+.sidebar .on { background: var(--tint); }
+
+main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.head { padding: 14px 16px 10px; }
+.head h1 { font-size: 22px; font-weight: 700; margin: 0; }
+.count, .status { font-size: 12px; color: var(--secondary); font-variant-numeric: tabular-nums; margin: 0; }
+.scroller { flex: 1; overflow-y: auto; min-height: 0; }
+.status { font-size: 11px; text-align: right; padding: 6px 16px; min-height: 28px; border-top: 1px solid var(--separator); }
+.credit {
+  position: fixed; left: calc(16px + env(safe-area-inset-left)); bottom: calc(16px + env(safe-area-inset-bottom)); z-index: 20;
+  display: flex; align-items: center; gap: 6px; padding: 3px 12px 3px 3px; border-radius: 20px;
+  color: var(--label); text-decoration: none; font-size: 12px; font-weight: 600;
+  background: var(--alert); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+  border: 1px solid var(--separator); box-shadow: 0 4px 16px rgba(0,0,0,.15);
+}
+.credit:hover { color: var(--accent); }
+.credit img {
+  width: 28px; height: 28px; border-radius: 50%; object-fit: cover; padding: 2px;
+  background: linear-gradient(45deg, #FEDA75, #FA7E1E, #D62976, #962FBF, #4F5BD5);
+}
+
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; }
+.tile { position: relative; aspect-ratio: 1; overflow: hidden; }
+.tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.tile::before { content: ""; position: absolute; inset: 0; box-shadow: inset 0 0 0 3px var(--accent); }
+.check {
+  position: absolute; right: 6px; bottom: 6px; width: 20px; height: 20px; border-radius: 50%;
+  background: var(--accent); border: 1.5px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,.3);
+}
+.check::after {
+  content: ""; position: absolute; left: 5.5px; top: 2.5px; width: 5px; height: 9px;
+  border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg);
+}
+
+.empty { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 24px; gap: 6px; }
+.empty h2 { font-size: 17px; font-weight: 600; margin: 0; }
+.empty p { color: var(--secondary); margin: 0; max-width: 280px; }
+.empty .error { color: var(--destructive); }
+.actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; justify-content: center; }
+.btn { height: 28px; padding: 0 14px; border-radius: 6px; border: 1px solid var(--separator); background: var(--button); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn:disabled { opacity: .5; cursor: default; }
+
+.overlay {
+  position: absolute; inset: 0; background: rgba(0,0,0,.3); display: grid; place-items: center;
+  opacity: 0; visibility: hidden; transition: opacity 150ms, visibility 150ms; z-index: 10;
+}
+.overlay.open { opacity: 1; visibility: visible; }
+.alert {
+  width: 260px; padding: 20px 16px 16px; border-radius: 12px; text-align: center;
+  background: var(--alert); -webkit-backdrop-filter: blur(30px); backdrop-filter: blur(30px);
+  box-shadow: 0 10px 40px rgba(0,0,0,.3); border: 1px solid var(--separator);
+  transform: scale(.95); transition: transform 150ms;
+}
+.open .alert { transform: none; }
+.icon {
+  width: 52px; height: 52px; margin: 0 auto 12px; border-radius: 12px; background: #fff;
+  display: grid; place-items: center; box-shadow: 0 1px 3px rgba(0,0,0,.2);
+}
+.icon::after { content: ""; width: 34px; height: 34px; border-radius: 50%; background: conic-gradient(#FF5F57, #FEBC2E, #28C840, #0A84FF, #AF52DE, #FF5F57); }
+.alert h2 { font-size: 13px; font-weight: 700; margin: 0 0 4px; }
+.alert p { font-size: 11px; color: var(--secondary); margin: 0 0 16px; }
+.alert .actions { flex-wrap: nowrap; margin: 0; }
+.alert .btn { flex: 1; }
+.btn.danger { background: var(--destructive); border-color: var(--destructive); color: #fff; }
+.alert.cam { width: min(520px, calc(100% - 24px)); padding: 12px; }
+.cam video { display: block; width: 100%; max-height: 60vh; border-radius: 8px; background: #000; margin-bottom: 12px; }
+
+@media (max-width: 767px) {
+  body { display: block; }
+  .window { width: 100%; height: 100vh; height: 100dvh; border: 0; border-radius: 0; box-shadow: none; }
+  .titlebar { flex-basis: calc(52px + env(safe-area-inset-top)); padding-top: env(safe-area-inset-top); }
+  .title { top: calc(env(safe-area-inset-top) + 26px); transform: translate(-50%, -50%); }
+  .sidebar { display: none; }
+  .status { min-height: 52px; padding-bottom: calc(6px + env(safe-area-inset-bottom)); }
+  .credit { left: calc(8px + env(safe-area-inset-left)); bottom: calc(8px + env(safe-area-inset-bottom)); }
+}
+/* Phones (portrait, or landscape with little height) get a notice instead of the app. */
+.phone-only { display: none; }
+@media (max-width: 699px), (max-height: 500px) and (pointer: coarse) {
+  .window { display: none; }
+  .phone-only {
+    display: grid; place-items: center; position: fixed; inset: 0;
+    padding: calc(24px + env(safe-area-inset-top)) 24px calc(80px + env(safe-area-inset-bottom));
+  }
+  .phone-only .alert { transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .alert, .open .alert { transform: none; transition: none; }
+  .overlay { transition: none; }
+  #theme svg.swap { animation: none; }
+}
+</style>
+</head>
+<body>
+<div class="window">
+  <header class="titlebar">
+    <div class="lights" aria-hidden="true"><i></i><i></i><i></i></div>
+    <div class="title" id="title">Recents</div>
+    <div class="tools">
+    <button class="tool" id="theme" aria-label="Dark mode" aria-pressed="false"></button>
+    <button class="tool trash" id="trash" aria-label="Delete selected photos" disabled>
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" aria-hidden="true">
+        <path d="M2.5 4h11M6 4V2.5h4V4M3.8 4l.7 9.5h7l.7-9.5M6.5 6.5v4.5M9.5 6.5v4.5"/>
+      </svg>
+    </button>
+    </div>
+  </header>
+  <div class="body">
+    <nav class="sidebar" aria-hidden="true">
+      <h2>Library</h2><div class="on">Recents</div><div>Favorites</div>
+      <h2>Albums</h2><div>Kidonk</div>
+    </nav>
+    <main>
+      <div class="head">
+        <h1>Recents</h1>
+        <p class="count" id="count">0 Photos</p>
+      </div>
+      <div class="scroller" id="scroller">
+        <div class="grid" id="grid" aria-label="Photos" hidden></div>
+        <div class="empty" id="empty">
+          <h2>No Photos</h2>
+          <p id="msg">Pick a photo to fill all 42 slots. Your photos stay on this device.</p>
+          <div class="actions" id="pick">
+            <button class="btn primary" id="lib">Choose from Library</button>
+            <button class="btn" id="cam">Take Photo</button>
+          </div>
+          <div class="actions" id="after" hidden>
+            <button class="btn primary" id="replay">Replay</button>
+            <button class="btn" id="other">Use Other Photos</button>
+          </div>
+        </div>
+      </div>
+      <p class="status" id="status"></p>
+    </main>
+  </div>
+  <div class="overlay" id="overlay">
+    <div class="alert" role="alertdialog" aria-modal="true" aria-labelledby="a-title" aria-describedby="a-desc">
+      <div class="icon" aria-hidden="true"></div>
+      <h2 id="a-title">Delete 42 Photos?</h2>
+      <p id="a-desc">These photos will be removed from this album.</p>
+      <div class="actions">
+        <button class="btn" id="cancel">Cancel</button>
+        <button class="btn danger" id="confirm">Delete</button>
+      </div>
+    </div>
+  </div>
+  <div class="overlay" id="camOverlay">
+    <div class="alert cam" role="dialog" aria-modal="true" aria-label="Camera">
+      <video id="video" autoplay playsinline muted></video>
+      <div class="actions">
+        <button class="btn" id="camCancel">Cancel</button>
+        <button class="btn primary" id="snap">Take Photo</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="phone-only">
+  <div class="alert" role="alert">
+    <div class="icon" aria-hidden="true"></div>
+    <h2>Open on a laptop or iPad</h2>
+    <p>Kidonk Kidonk is designed for larger screens. Open this link on a laptop or iPad to use it.</p>
+  </div>
+</div>
+<a class="credit" href="https://www.instagram.com/ruhulikr/" target="_blank" rel="noopener" aria-label="Made by @ruhulikr on Instagram">
+  <img src="avatar.jpg" alt="" width="28" height="28">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+    <rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/>
+  </svg>
+  <span>@ruhulikr</span>
+</a>
+<p class="sr" aria-live="polite" id="live"></p>
+<input type="file" id="fileLib" accept="image/*" multiple hidden>
+<input type="file" id="fileCam" accept="image/*" capture="environment" hidden>
+
+<script>
+const N = 42;
+const $ = id => document.getElementById(id);
+const els = { title: $('title'), count: $('count'), status: $('status'), grid: $('grid'), empty: $('empty'),
+  msg: $('msg'), scroller: $('scroller'), pick: $('pick'), after: $('after'), trash: $('trash'), overlay: $('overlay'), live: $('live') };
+const EMPTY_MSG = els.msg.textContent;
+
+let urls = [];     // object URLs for the photo set
+let state = 'empty';
+
+// Storage: IndexedDB `kidonk` / `photos` / key `set`. Failures (e.g. private mode) are ignored.
+const store = (() => {
+  const open = () => new Promise((res, rej) => {
+    const r = indexedDB.open('kidonk', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('photos');
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+  const run = async (mode, fn) => {
+    const db = await open();
+    return new Promise((res, rej) => {
+      const t = db.transaction('photos', mode);
+      const req = fn(t.objectStore('photos'));
+      t.oncomplete = () => { db.close(); res(req.result); };
+      t.onerror = t.onabort = () => { db.close(); rej(t.error); };
+    });
+  };
+  const safe = p => p.catch(() => undefined);
+  return {
+    save: blobs => safe(run('readwrite', s => s.put(blobs, 'set'))),
+    load: () => safe(run('readonly', s => s.get('set'))),
+    clear: () => safe(run('readwrite', s => s.delete('set'))),
+  };
+})();
+
+function resize(file) {
+  return new Promise(res => {
+    const src = URL.createObjectURL(file);
+    const img = new Image();
+    const done = b => { URL.revokeObjectURL(src); res(b); };
+    img.onerror = () => done(null);
+    img.onload = () => {
+      const w = img.naturalWidth, h = img.naturalHeight;
+      if (!w || !h) return done(null);
+      const k = Math.min(1, 500 / Math.max(w, h));
+      const c = document.createElement('canvas');
+      c.width = Math.round(w * k); c.height = Math.round(h * k);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      c.toBlob(done, 'image/jpeg', 0.82);
+    };
+    img.src = src;
+  });
+}
+
+const label = n => `${n} Photo${n === 1 ? '' : 's'}`;
+function setCount(n) {
+  els.title.textContent = label(n);
+  els.count.textContent = label(n);
+  els.status.textContent = n ? `${label(n)} Selected` : '';
+}
+
+function setState(s) {
+  state = s;
+  const showGrid = s === 'ready' || s === 'confirming' || s === 'deleting';
+  els.grid.hidden = !showGrid;
+  els.empty.hidden = showGrid;
+  els.pick.hidden = s !== 'empty';
+  els.after.hidden = s !== 'done';
+  els.trash.disabled = s !== 'ready';
+  if (s === 'empty') { els.msg.textContent = EMPTY_MSG; els.msg.className = ''; setCount(0); }
+  if (s === 'done') { els.msg.textContent = `${N} photos deleted. Replay for another take.`; els.msg.className = ''; }
+}
+
+function renderGrid() {
+  const frag = document.createDocumentFragment();
+  for (let i = 0; i < N; i++) {
+    const tile = document.createElement('div');
+    tile.className = 'tile';
+    const img = document.createElement('img');
+    img.src = urls[i % urls.length];
+    img.alt = '';
+    img.decoding = 'async';
+    const check = document.createElement('span');
+    check.className = 'check';
+    tile.append(img, check);
+    frag.append(tile);
+  }
+  els.grid.replaceChildren(frag);
+  els.scroller.scrollTop = 0;
+  setCount(N);
+  setState('ready');
+}
+
+function usePhotos(blobs) {
+  urls.forEach(URL.revokeObjectURL);
+  urls = blobs.map(b => URL.createObjectURL(b));
+  renderGrid();
+}
+
+function onFiles(input) {
+  const files = [...input.files].slice(0, N);
+  input.value = '';
+  if (files.length) loadFiles(files);
+}
+
+async function loadFiles(files) {
+  els.msg.textContent = 'Loading photos…';
+  els.msg.className = '';
+  $('lib').disabled = $('cam').disabled = true;
+  const blobs = (await Promise.all(files.map(resize))).filter(Boolean);
+  $('lib').disabled = $('cam').disabled = false;
+  if (!blobs.length) {
+    els.msg.textContent = "That file couldn't be read as an image. Please choose another photo.";
+    els.msg.className = 'error';
+    els.msg.setAttribute('role', 'alert');
+    return;
+  }
+  usePhotos(blobs);
+  store.save(blobs);
+}
+
+// Camera: live preview via getUserMedia; falls back to the native capture input if unavailable or denied.
+let stream = null;
+async function openCamera() {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+  } catch {
+    return $('fileCam').click();
+  }
+  $('video').srcObject = stream;
+  $('camOverlay').classList.add('open');
+  $('snap').focus();
+}
+function closeCamera() {
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  stream = null;
+  $('video').srcObject = null;
+  $('camOverlay').classList.remove('open');
+}
+function snap() {
+  const v = $('video');
+  if (!v.videoWidth) return;   // camera not ready yet
+  const c = document.createElement('canvas');
+  c.width = v.videoWidth; c.height = v.videoHeight;
+  c.getContext('2d').drawImage(v, 0, 0);
+  closeCamera();
+  c.toBlob(b => b && loadFiles([b]), 'image/jpeg', 0.92);
+}
+
+// Alert
+function openAlert() {
+  if (state !== 'ready') return;
+  state = 'confirming';
+  els.trash.disabled = true;
+  els.overlay.classList.add('open');
+  $('confirm').focus();
+}
+function closeAlert(refocus = true) {
+  els.overlay.classList.remove('open');
+  if (state === 'confirming') { setState('ready'); if (refocus) els.trash.focus(); }
+}
+
+function startDelete() {
+  closeAlert(false);
+  setState('deleting');
+  document.activeElement.blur();
+  els.live.textContent = `Deleting ${N} photos`;
+  const tiles = [...els.grid.children];   // remaining tiles, in grid order
+  els.scroller.scrollTop = 0;
+  const step = () => {
+    tiles.shift().remove();   // no animation: the rest jump one slot back, frame by frame
+    const left = tiles.length;
+    if (navigator.vibrate) navigator.vibrate(12);
+    setCount(left);
+    if (!left) return setTimeout(finish, 150);
+    setTimeout(step, 170);   // constant tempo
+  };
+  step();
+}
+
+function finish() {
+  els.grid.replaceChildren();
+  setState('done');
+  els.live.textContent = 'All photos deleted';
+  $('replay').focus();
+}
+
+// Theme: follows the system until the user picks one; the choice is remembered per browser.
+const root = document.documentElement;
+const darkQuery = matchMedia('(prefers-color-scheme: dark)');
+const isDark = () => root.dataset.theme ? root.dataset.theme === 'dark' : darkQuery.matches;
+const SUN = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="3"/><path d="M8 1.5v1.5M8 13v1.5M1.5 8H3M13 8h1.5M3.4 3.4l1 1M11.6 11.6l1 1M3.4 12.6l1-1M11.6 4.4l1-1"/></svg>';
+const MOON = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" aria-hidden="true"><path d="M13.5 9.5A5.5 5.5 0 0 1 6.5 2.5a5.5 5.5 0 1 0 7 7z"/></svg>';
+function showTheme(animate) {
+  $('theme').innerHTML = isDark() ? SUN : MOON;
+  $('theme').setAttribute('aria-pressed', isDark());
+  if (animate) $('theme').firstChild.classList.add('swap');
+}
+$('theme').onclick = () => {
+  const apply = () => {
+    root.dataset.theme = isDark() ? 'light' : 'dark';
+    try { localStorage.setItem('theme', root.dataset.theme); } catch {}
+    showTheme(true);
+  };
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return apply();
+  // Crossfade the whole page (covers the gradient background too); older browsers get color transitions.
+  if (document.startViewTransition) return document.startViewTransition(apply);
+  root.classList.add('theming');
+  apply();
+  setTimeout(() => root.classList.remove('theming'), 350);
+};
+darkQuery.addEventListener('change', () => showTheme(true));
+showTheme(false);
+
+// Wiring
+$('lib').onclick = () => $('fileLib').click();
+$('cam').onclick = openCamera;
+$('snap').onclick = snap;
+$('camCancel').onclick = closeCamera;
+$('camOverlay').onclick = e => { if (e.target === $('camOverlay')) closeCamera(); };
+$('fileLib').onchange = e => onFiles(e.target);
+$('fileCam').onchange = e => onFiles(e.target);
+els.trash.onclick = openAlert;
+$('cancel').onclick = () => closeAlert();
+$('confirm').onclick = startDelete;
+els.overlay.onclick = e => { if (e.target === els.overlay) closeAlert(); };
+$('replay').onclick = renderGrid;
+$('other').onclick = () => {
+  store.clear();
+  urls.forEach(URL.revokeObjectURL);
+  urls = [];
+  setState('empty');
+  $('lib').focus();
+};
+document.addEventListener('keydown', e => {
+  if (stream && e.key === 'Escape') return closeCamera();
+  if (state !== 'confirming') return;
+  if (e.key === 'Escape') { e.preventDefault(); closeAlert(); }
+  else if (e.key === 'Tab') {   // trap focus between the two buttons
+    e.preventDefault();
+    (document.activeElement === $('cancel') ? $('confirm') : $('cancel')).focus();
+  }
+});
+
+store.load().then(saved => { if (saved && saved.length && state === 'empty') usePhotos(saved); });
+</script>
+</body>
+</html>
