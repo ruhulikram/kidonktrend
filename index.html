@@ -143,7 +143,7 @@ main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 .alert .btn { flex: 1; }
 .btn.danger { background: var(--destructive); border-color: var(--destructive); color: #fff; }
 .alert.cam { width: min(520px, calc(100% - 24px)); padding: 12px; }
-.cam video { display: block; width: 100%; max-height: 60vh; border-radius: 8px; background: #000; margin-bottom: 12px; }
+.cam video { transform: scaleX(-1); display: block; width: 100%; max-height: 60vh; border-radius: 8px; background: #000; margin-bottom: 12px; }
 
 @media (max-width: 767px) {
   body { display: block; }
@@ -153,6 +153,11 @@ main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
   .sidebar { display: none; }
   .status { min-height: 52px; padding-bottom: calc(6px + env(safe-area-inset-bottom)); }
   .credit { left: calc(8px + env(safe-area-inset-left)); bottom: calc(8px + env(safe-area-inset-bottom)); }
+}
+/* iPad and narrow windows: little room beside the window, so the credit shows only the avatar and icon. */
+@media (max-width: 1279px), (pointer: coarse) {
+  .credit { padding-right: 8px; }
+  .credit span { display: none; }
 }
 /* Phones (portrait, or landscape with little height) get a notice instead of the app. */
 .phone-only { display: none; }
@@ -250,7 +255,7 @@ main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 </a>
 <p class="sr" aria-live="polite" id="live"></p>
 <input type="file" id="fileLib" accept="image/*" multiple hidden>
-<input type="file" id="fileCam" accept="image/*" capture="environment" hidden>
+<input type="file" id="fileCam" accept="image/*" capture="user" hidden>
 
 <script>
 const N = 42;
@@ -373,11 +378,11 @@ async function loadFiles(files) {
   store.save(blobs);
 }
 
-// Camera: live preview via getUserMedia; falls back to the native capture input if unavailable or denied.
+// Camera: front camera only, live preview via getUserMedia; falls back to the native capture input if unavailable or denied.
 let stream = null;
 async function openCamera() {
   try {
-    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
   } catch {
     return $('fileCam').click();
   }
@@ -396,7 +401,9 @@ function snap() {
   if (!v.videoWidth) return;   // camera not ready yet
   const c = document.createElement('canvas');
   c.width = v.videoWidth; c.height = v.videoHeight;
-  c.getContext('2d').drawImage(v, 0, 0);
+  const ctx = c.getContext('2d');
+  ctx.translate(c.width, 0); ctx.scale(-1, 1);   // mirror, matching the selfie preview
+  ctx.drawImage(v, 0, 0);
   closeCamera();
   c.toBlob(b => b && loadFiles([b]), 'image/jpeg', 0.92);
 }
