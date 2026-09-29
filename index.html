@@ -1077,6 +1077,7 @@
     }
 
     function finish() {
+      store.clear();
       els.grid.replaceChildren();
       setState('done');
       els.live.textContent = 'All photos deleted';
@@ -1147,7 +1148,9 @@
       }
     });
 
-    store.load().then(saved => { if (saved && saved.length && state === 'empty') usePhotos(saved); });
+    // Always start fresh on load: clear any lingering photos from previous sessions
+    store.clear();
+    setState('empty');
   </script>
 </body>
 
