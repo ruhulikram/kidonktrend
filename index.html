@@ -626,13 +626,18 @@
       }
     }
 
-    /* iPad and narrow windows: little room beside the window, so the credit shows only the avatar and icon. */
+    /* iPad and narrow windows: make credit button circle icon only */
     @media (max-width: 1279px),
     (pointer: coarse) {
       .credit {
-        padding-right: 8px;
+        width: 36px;
+        height: 36px;
+        padding: 0;
+        border-radius: 50%;
+        justify-content: center;
       }
 
+      .credit svg,
       .credit span {
         display: none;
       }
@@ -1111,7 +1116,6 @@
     $('snap').onclick = snap;
     $('camCancel').onclick = closeCamera;
     $('camDone').onclick = camDone;
-    $('camOverlay').onclick = e => { if (e.target === $('camOverlay')) closeCamera(); };
     $('fileLib').onchange = e => onFiles(e.target);
     $('fileCam').onchange = e => onFiles(e.target);
     els.trash.onclick = openAlert;
